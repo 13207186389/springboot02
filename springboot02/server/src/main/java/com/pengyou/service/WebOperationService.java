@@ -1,0 +1,63 @@
+package com.pengyou.service;
+
+import com.google.common.base.Strings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.*;
+
+/**
+ * Created by Administrator on 2018/9/23.
+ */
+@Service
+public class WebOperationService {
+
+    private static final Logger log= LoggerFactory.getLogger(WebOperationService.class);
+
+
+    /**
+     * 通用下载附件
+     * @throws Exception
+     */
+    public void downloadFile(HttpServletResponse response, InputStream in, String fileName) throws Exception{
+        if(in == null || Strings.isNullOrEmpty(fileName)){
+            return;
+        }
+
+        BufferedInputStream bis = null;
+        OutputStream os = null;
+        BufferedOutputStream bos = null;
+        try{
+            bis = new BufferedInputStream(in);
+            os = response.getOutputStream();
+            bos = new BufferedOutputStream(os);
+            response.setContentType("application/octet-stream;charset=UTF-8");
+            response.setHeader("Content-Disposition", "attachment;filename="+new String(fileName.getBytes("utf-8"),"iso-8859-1"));
+            byte[] buffer = new byte[10240];
+            int len = bis.read(buffer);
+            while(len != -1){
+                bos.write(buffer, 0, len);
+                len = bis.read(buffer);
+            }
+
+            bos.flush();
+        }catch(IOException e){
+            e.printStackTrace();
+        }finally{
+            if(bis != null){
+                try{
+                    bis.close();
+                }catch(IOException e){}
+            }
+            if(in != null){
+                try{
+                    in.close();
+                }catch(IOException e){}
+            }
+        }
+    }
+
+
+}

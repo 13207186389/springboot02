@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Title</title>
+</head>
+<body>
+    <p style="font-size: larger; color: burlywood">这是我发送出来的模板邮件,以下是邮件内容:</p><br/>
+    内容：<span th:text="${content}"></span><br/>
+    收件人：<span th:text="${mailTos}"></span><br/>
+</body>
+</html>
