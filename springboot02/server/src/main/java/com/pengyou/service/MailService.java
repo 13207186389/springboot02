@@ -1,8 +1,11 @@
 package com.pengyou.service;
 
 
+import com.pengyou.model.entity.Appendix;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.env.Environment;
@@ -17,10 +20,13 @@ import org.thymeleaf.spring5.SpringTemplateEngine;
 import javax.annotation.PostConstruct;
 import javax.mail.internet.MimeMessage;
 import java.io.File;
+import java.util.List;
 import java.util.Map;
 
 @Service
 public class MailService {
+
+    private static final Logger log= LoggerFactory.getLogger(MailService.class);
 
     @Autowired
     private JavaMailSender mailSender;
@@ -155,10 +161,45 @@ public class MailService {
         return html;
     }
 
+    /**
+     * 改造后的利用定时任务发送邮件的构造方法
+     * @param subject 主题
+     * @param content 内容
+     * @param tos     接收邮件人群
+     * @param appendixList 附件列表
+     * @throws Exception
+     */
+    public void sendAttachmentMail(String subject, String content, String[] tos, List<Appendix> appendixList) throws Exception {
+        //获取发送带附件邮件对象
+        MimeMessage message =mailSender.createMimeMessage();
+        MimeMessageHelper messageHelper=new MimeMessageHelper(message,true,"utf-8");
+
+        //设置邮件发送者
+        messageHelper.setFrom(env.getProperty("mail.send.from"));
+        //设置邮件接收者(可以群发)
+        messageHelper.setTo(tos);
+        //设置发送主题
+        messageHelper.setSubject(subject);
+        //设置发送内容
+        messageHelper.setText(content);
+
+        //遍历附件集合添加附件
+        //注意当编码后的文件名长度如果大于60并且splitLongParameters的值为true - 可以实战测试!
+        for(Appendix a :appendixList){
+            try {
+                messageHelper.addAttachment(a.getName(),new File(env.getProperty("file.upload.root.url")+a.getLocation()));
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        //利用发送邮件的工具发送邮件
+        mailSender.send(message);
+        log.info("定时任务发送带附件文本邮件成功--->");
+    }
 
 
 
-    //当编码后的文件长度大于60就要设置splitlongparameters为false
+    //当编码后的文件名长度大于60就要设置splitlongparameters为false
     @PostConstruct
     public void init(){
         System.setProperty("mail.mime.splitlongparameters","false");
