@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -41,7 +40,7 @@ public class MailOrderRecordScheduler {
     private Environment env;
 
     //指定执行时间
-    @Scheduled(cron = "${scheduler.mail.send.cron}")
+    //@Scheduled(cron = "${scheduler.mail.send.cron}")
     public void sendOrderRecordAppendixInfo(){
         OrderRecord record=orderRecordMapper.selectByPrimaryKey(recordId);
         if (record!=null){
