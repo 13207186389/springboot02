@@ -157,6 +157,16 @@
     </if>
   </select>
 
+  <!--批量插入信息-->
+  <insert id="insertBatch" parameterType="java.util.List">
+    INSERT INTO product(name,unit,price,stock,remark,purchase_date) VALUES
+
+    <foreach collection="list" item="p" index="index" separator=",">
+      (#{p.name,jdbcType=VARCHAR}, #{p.unit,jdbcType=VARCHAR},#{p.price,jdbcType=DOUBLE}, #{p.stock,jdbcType=INTEGER}, #{p.remark,jdbcType=VARCHAR},
+      #{p.purchaseDate,jdbcType=DATE})
+    </foreach>
+  </insert>
+
 
 </mapper>
 

@@ -26,4 +26,8 @@ public class Product {
     private Date purchaseDate;
 
     private Integer isDelete=0;
+
+    private Date createTime;
+
+    private Date updateTime;
 }

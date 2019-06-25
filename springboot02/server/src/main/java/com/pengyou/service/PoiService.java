@@ -1,15 +1,23 @@
 package com.pengyou.service;
 
+import com.google.common.base.Strings;
+import com.pengyou.enums.WorkBookVersion;
+import com.pengyou.model.entity.Product;
+import com.pengyou.util.ExcelUtil;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -135,29 +143,104 @@ public class PoiService {
         Row row;
         Object obj;
 
-        for(Map<Integer, Object> rowMap:dataList){
-            try {
-                row=sheet.createRow(rowIndex++);
+        if (dataList!=null && dataList.size()>0) {
 
-                //TODO：遍历表头行-每个key -> 取到实际的value
-                for(int i=0;i<headers.length;i++){
-                    obj=rowMap.get(i);
+            for (Map<Integer, Object> rowMap : dataList) {
+                try {
+                    row = sheet.createRow(rowIndex++);
 
-                    if (obj==null) {
-                        row.createCell(i).setCellValue("");
-                    }else if (obj instanceof Date) {
-                        String tempDate=simpleDateFormat.format((Date)obj);
-                        row.createCell(i).setCellValue((tempDate==null)?"":tempDate);
-                    }else {
-                        row.createCell(i).setCellValue(String.valueOf(obj));
+                    //TODO：遍历表头行-每个key -> 取到实际的value
+                    for (int i = 0; i < headers.length; i++) {
+                        obj = rowMap.get(i);
+
+                        if (obj == null) {
+                            row.createCell(i).setCellValue("");
+                        } else if (obj instanceof Date) {
+                            String tempDate = simpleDateFormat.format((Date) obj);
+                            row.createCell(i).setCellValue((tempDate == null) ? "" : tempDate);
+                        } else {
+                            row.createCell(i).setCellValue(String.valueOf(obj));
+                        }
                     }
+                } catch (Exception e) {
+                    log.debug("excel sheet填充数据 发生异常： ", e.fillInStackTrace());
                 }
-            } catch (Exception e) {
-                log.debug("excel sheet填充数据 发生异常： ",e.fillInStackTrace());
             }
         }
-
         return wb;
+    }
+
+    /**
+     * 根据file与后缀名区分获取workbook实例
+     * @param file
+     * @param suffix
+     * @return
+     * @throws Exception
+     */
+    public Workbook getWorkbook(MultipartFile file, String suffix) throws Exception{
+        Workbook wk=null;
+        if (WorkBookVersion.WorkBook2003Xls.getCode().equalsIgnoreCase(suffix)){
+            wk=new HSSFWorkbook(file.getInputStream());
+        }else if (WorkBookVersion.WorkBook2007Xlsx.getCode().equalsIgnoreCase(suffix)) {
+            wk=new XSSFWorkbook(file.getInputStream());
+        }
+        return wk;
+    }
+
+    /**
+     * 读取excel数据
+     * @param wb
+     * @return
+     * @throws Exception
+     */
+    public List<Product> readExcelData(Workbook wb) throws Exception{
+        Product product;
+        //定义一个集合保存product对象
+        List<Product> products=new ArrayList<Product>();
+        //定义行元素
+        Row row;
+        //获取sheet的个数
+        int numSheet=wb.getNumberOfSheets();
+        //判断如果sheet>0则遍历sheet
+        if (numSheet>0) {
+            for(int i=0;i<numSheet;i++){
+                //获得当前的sheet
+                Sheet sheet=wb.getSheetAt(i);
+                //获得当前sheet有多少行
+                int numRow=sheet.getLastRowNum();
+                //判断如果行>0开始遍历每一行
+                if (numRow>0) {
+                    for(int j=1;j<=numRow;j++){
+                        //TODO：跳过excel sheet表格头部
+                        row=sheet.getRow(j);
+                        //新建一个product对象来保存读取到的数据
+                        product=new Product();
+                        //利用处理单元格工具获得经过处理的内容
+                        String name= ExcelUtil.manageCell(row.getCell(0), null);
+                        String unit=ExcelUtil.manageCell(row.getCell(1), null);
+                        Double price=Double.valueOf(ExcelUtil.manageCell(row.getCell(2), null));
+                        String stock=ExcelUtil.manageCell(row.getCell(3), null);
+                        String remark=ExcelUtil.manageCell(row.getCell(4), null);
+
+                        product.setName(name);
+                        product.setUnit(unit);
+                        product.setPrice(price);
+                        //判断库存后面有小数点,要去掉小数点后面的0
+                        product.setStock((!Strings.isNullOrEmpty(stock) && stock.contains("."))?
+                                Integer.valueOf(stock.substring(0,stock.lastIndexOf("."))) :
+                                Integer.valueOf(stock));
+                        //转换生产时间保存到对象中
+                        String value=ExcelUtil.manageCell(row.getCell(5), "yyyy-MM-dd");
+                        product.setPurchaseDate(simpleDateFormat.parse(value));
+                        product.setRemark(remark);
+
+                        products.add(product);
+                    }
+                }
+            }
+        }
+        log.info("获取数据列表: {} ",products);
+        return products;
     }
 
 }
