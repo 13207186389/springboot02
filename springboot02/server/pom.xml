@@ -66,6 +66,12 @@
             <artifactId>spring-boot-starter-freemarker</artifactId>
         </dependency>
 
+        <!--redis-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
         <!--guava-->
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -140,7 +146,6 @@
     <!--spring boot打包插件-->
     <build>
         <finalName>server_${project.parent.version}</finalName>
-
         <plugins>
 
             <plugin>

@@ -173,7 +173,7 @@ public class ExcelController {
 
 
     /**
-     * 不分sheet,poi导出我们的商品表格
+     * 不分sheet,poi导出我们的商品表格模板
      * @param name
      * @param response
      * @return
