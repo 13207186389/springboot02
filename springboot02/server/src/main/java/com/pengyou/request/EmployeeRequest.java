@@ -22,4 +22,7 @@ public class EmployeeRequest {
     private String mobile;
 
     private String profile;
+
+    @NotBlank
+    private String email;
 }

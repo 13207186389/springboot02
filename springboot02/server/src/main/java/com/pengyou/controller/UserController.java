@@ -117,6 +117,33 @@ public class UserController {
         return response;
     }
 
+    /**
+     * 用户注册
+     * @param employeeRequest
+     * @param bindingResult
+     * @return
+     */
+    @RequestMapping(value = prefix+"/register",method = RequestMethod.POST,consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public BaseResponse register(@RequestBody @Validated EmployeeRequest employeeRequest,BindingResult bindingResult){
+        //效验参数
+        if(bindingResult.hasErrors()){
+            return new BaseResponse(StatusCode.Invalid_Params);
+        }
+
+        BaseResponse response=new BaseResponse(StatusCode.Success);
+        try{
+        //TODO:V1一个线程执行注册,更新缓存,发送邮件
+            //userService.registerV1(employeeRequest);
+        //TODO:V2异步执行注册执行注册,更新缓存,发送邮件
+            userService.registerV2(employeeRequest);
+        }catch (Exception e){
+            response=new BaseResponse(StatusCode.Fail);
+            e.printStackTrace();
+        }
+
+        return response;
+    }
+
 
 
 }

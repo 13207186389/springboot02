@@ -2,17 +2,25 @@ package com.pengyou.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
+import com.google.common.collect.Maps;
+import com.pengyou.listener.event.UserRegisterEvent;
 import com.pengyou.model.entity.User;
 import com.pengyou.model.mapper.UserMapper;
+import com.pengyou.request.EmployeeRequest;
 import org.apache.commons.lang3.RandomUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -36,6 +44,12 @@ public class UserService {
 
     @Autowired
     private ObjectMapper objectMapper; //序列化为json格式字符串的工具
+
+    @Autowired
+    private MailService mailService;
+
+    @Autowired
+    private ApplicationEventPublisher publisher;
 
     /**
      * V1根据用户ID查询用户信息
@@ -271,5 +285,46 @@ public class UserService {
         }
         return user;
     }
+
+    /**
+     * 用户注册v1(同步执行)  一个线程执行3个操作 注册,更新缓存
+     * @param request
+     * @throws Exception
+     */
+    public void registerV1(EmployeeRequest request) throws Exception{
+        //录入注册信息
+        User user=new User();
+        BeanUtils.copyProperties(request,user);
+        //执行注册sql
+        userMapper.insertSelective(user);
+        //更新缓存
+        this.updateRedisCache(user.getId());
+        //发送邮件给用户
+        Map<String,Object> paramsMap= Maps.newHashMap();
+        paramsMap.put("userName",user.getUserName());
+        paramsMap.put("url","http://www.baidu.com");
+        //得到要发送邮件内容的模板
+        String html=mailService.renderFreemarkerTemplate(env.getProperty("mail.template.file.location.register"),paramsMap);
+        //发送邮件
+        mailService.sendhtmlMail("成功入职通知",html,new String[]{user.getEmail()});
+    }
+
+    /**
+     * 用户注V2册 利用ApplicationEvebt和Listener实现异步发送邮件和更新缓存
+     * @param request
+     * @throws Exception
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void registerV2(EmployeeRequest request) throws Exception{
+        //TODO：录入信息
+        User user=new User();
+        BeanUtils.copyProperties(request,user);
+        userMapper.insertSelective(user);
+
+        //TODO：异步发送消息
+        UserRegisterEvent event=new UserRegisterEvent(this,user,"http://www.baidu.com");
+        publisher.publishEvent(event);
+    }
+
 
 }

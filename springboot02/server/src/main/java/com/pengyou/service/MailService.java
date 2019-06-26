@@ -118,7 +118,7 @@ public class MailService {
 
         //加入附件
         //注意当编码后的文件名长度如果大于60并且splitLongParameters的值为true - 可以实战测试!
-        messageHelper.addAttachment(env.getProperty("mail.send.attachment.one.name"),new File(env.getProperty("mail.send.attachment.one.location")));
+        //messageHelper.addAttachment(env.getProperty("mail.send.attachment.one.name"),new File(env.getProperty("mail.send.attachment.one.location")));
 
 
         //利用发送邮件的工具发送邮件
