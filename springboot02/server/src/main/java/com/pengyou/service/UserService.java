@@ -7,6 +7,7 @@ import com.pengyou.listener.event.UserRegisterEvent;
 import com.pengyou.model.entity.User;
 import com.pengyou.model.mapper.UserMapper;
 import com.pengyou.request.EmployeeRequest;
+import com.pengyou.util.AESUtil;
 import org.apache.commons.lang3.RandomUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URLEncoder;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -323,6 +326,48 @@ public class UserService {
 
         //TODO：异步发送消息
         UserRegisterEvent event=new UserRegisterEvent(this,user,"http://www.baidu.com");
+        publisher.publishEvent(event);
+    }
+
+
+    /**
+     * 用户注V3册 利用ApplicationEvebt和Listener实现异步发送邮件和更新缓存,并且发送效验邮箱的地址效验邮箱
+     * @param request
+     * @throws Exception
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void registerV3(EmployeeRequest request) throws Exception{
+        //TODO：录入信息
+        User user=new User();
+        BeanUtils.copyProperties(request,user);
+        userMapper.insertSelective(user);
+
+        //TODO：异步发送消息
+        //获取效验邮箱的接口地址
+        String url="http://localhost:9090/user/register/validate?";
+        //定义拼接的参数
+        //获取当前时间
+        Long timestamp=System.currentTimeMillis();
+        Map<String,String> dataMap=new HashMap<String, String>();
+        dataMap.put("userName",user.getUserName());
+        dataMap.put("timestamp",String.valueOf(timestamp));
+        //转换成JSON串
+        String dataMapStr=objectMapper.writeValueAsString(dataMap);
+        //得到加密后的事件
+        String dataMapStrEncrypt=AESUtil.encrypt(dataMapStr);
+        //由于加密后的字符串中有+号,要把+号也编码
+        String dataMapStrEncryptUTF8=URLEncoder.encode(dataMapStrEncrypt,"utf-8");
+
+        log.info("加密后并编码的字符串: {}",dataMapStrEncryptUTF8);
+
+        //拼接参数
+        String params=String.format("userName=%s&timestamp=%s&encryptStr=%s",user.getUserName(),timestamp,dataMapStrEncryptUTF8);
+        //拼接最终地址
+        url=url+params;
+
+        log.info("拼接后的url: {}",url);
+
+        UserRegisterEvent event=new UserRegisterEvent(this,user,url);
         publisher.publishEvent(event);
     }
 

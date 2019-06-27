@@ -1,11 +1,13 @@
 package com.pengyou.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pengyou.enums.StatusCode;
 import com.pengyou.model.entity.User;
 import com.pengyou.model.mapper.UserMapper;
 import com.pengyou.request.EmployeeRequest;
 import com.pengyou.response.BaseResponse;
 import com.pengyou.service.UserService;
+import com.pengyou.util.AESUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -16,6 +18,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
+import java.util.Map;
 
 @RestController
 public class UserController {
@@ -29,6 +32,9 @@ public class UserController {
 
     @Autowired(required = false)
     private UserMapper userMapper;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
 
     /**
@@ -135,13 +141,40 @@ public class UserController {
         //TODO:V1一个线程执行注册,更新缓存,发送邮件
             //userService.registerV1(employeeRequest);
         //TODO:V2异步执行注册执行注册,更新缓存,发送邮件
-            userService.registerV2(employeeRequest);
+            //userService.registerV2(employeeRequest);
+        //TODO:V3异步执行注册执行注册,更新缓存,发送邮件
+            userService.registerV3(employeeRequest);
         }catch (Exception e){
             response=new BaseResponse(StatusCode.Fail);
             e.printStackTrace();
         }
 
         return response;
+    }
+
+    @RequestMapping(value = prefix+"/register/validate",method = RequestMethod.GET)
+    public BaseResponse validateMail(@RequestParam String userName,@RequestParam String timestamp,@RequestParam String encryptStr){
+
+        try {
+            //解密
+            String resStr=AESUtil.decrypt(encryptStr);
+            //反序列化
+            Map<String,String> resMap=objectMapper.readValue(resStr, Map.class);
+            //验证参数
+            String userNameDecrypt=resMap.get("userName");
+            String timeStampDecrypt=resMap.get("timestamp");
+            if (userName.equals(userNameDecrypt) && timestamp.equals(timeStampDecrypt)){
+                return new BaseResponse(StatusCode.Success);
+            }else{
+                return new BaseResponse(StatusCode.Fail);
+            }
+
+
+        }catch (Exception e){
+            e.printStackTrace();
+            return new BaseResponse(StatusCode.Fail);
+        }
+
     }
 
 
