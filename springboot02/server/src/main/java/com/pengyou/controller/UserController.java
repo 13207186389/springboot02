@@ -143,7 +143,9 @@ public class UserController {
         //TODO:V2异步执行注册执行注册,更新缓存,发送邮件
             //userService.registerV2(employeeRequest);
         //TODO:V3异步执行注册执行注册,更新缓存,发送邮件
-            userService.registerV3(employeeRequest);
+            //userService.registerV3(employeeRequest);
+        //TODO:V4利用rabbitmq异步执行注册执行注册,更新缓存,发送邮件
+            userService.registerV4(employeeRequest);
         }catch (Exception e){
             response=new BaseResponse(StatusCode.Fail);
             e.printStackTrace();

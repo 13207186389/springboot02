@@ -3,6 +3,7 @@ package com.pengyou.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
+import com.pengyou.rabbitListener.userRegisterMessage.UserRegisterMessage;
 import com.pengyou.listener.event.UserRegisterEvent;
 import com.pengyou.model.entity.User;
 import com.pengyou.model.mapper.UserMapper;
@@ -11,6 +12,10 @@ import com.pengyou.util.AESUtil;
 import org.apache.commons.lang3.RandomUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageBuilder;
+import org.springframework.amqp.core.MessageDeliveryMode;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
@@ -53,6 +58,9 @@ public class UserService {
 
     @Autowired
     private ApplicationEventPublisher publisher;
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
     /**
      * V1根据用户ID查询用户信息
@@ -369,6 +377,47 @@ public class UserService {
 
         UserRegisterEvent event=new UserRegisterEvent(this,user,url);
         publisher.publishEvent(event);
+    }
+
+    /**
+     * 用户注V4册 rabbitma消息异步通信,实现异步发送邮件和更新缓存,并且发送效验邮箱的地址效验邮箱
+     * @param request
+     * @throws Exception
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void registerV4(EmployeeRequest request) throws Exception{
+        //TODO：录入信息
+        User user=new User();
+        BeanUtils.copyProperties(request,user);
+        userMapper.insertSelective(user);
+
+        //TODO：异步发送消息
+        //获取效验邮箱的接口地址
+        String url="http://localhost:9090/user/register/validate?";
+        //定义拼接的参数
+        //获取当前时间
+        Long timestamp=System.currentTimeMillis();
+        Map<String,String> dataMap=new HashMap<String, String>();
+        dataMap.put("userName",user.getUserName());
+        dataMap.put("timestamp",String.valueOf(timestamp));
+        //转换成JSON串
+        String dataMapStr=objectMapper.writeValueAsString(dataMap);
+        //得到加密后的事件
+        String dataMapStrEncrypt=AESUtil.encrypt(dataMapStr);
+        //由于加密后的字符串中有+号,要把+号也编码
+        String dataMapStrEncryptUTF8=URLEncoder.encode(dataMapStrEncrypt,"utf-8");
+        //拼接参数
+        String params=String.format("userName=%s&timestamp=%s&encryptStr=%s",user.getUserName(),timestamp,dataMapStrEncryptUTF8);
+        //拼接最终地址
+        url=url+params;
+
+        //TODO:发送消息
+        log.info("拼接后的url: {}",url);
+        //封装要发送的消息
+        UserRegisterMessage message=new UserRegisterMessage(user,url);
+        //TODO:利用rabbitTemplat发送消息,要传入参数为 交换机名字,routingkey名字,和信息,所以先要构造信息对象,并设置消息队列持久化
+        Message msg= MessageBuilder.withBody(objectMapper.writeValueAsBytes(message)).setDeliveryMode(MessageDeliveryMode.PERSISTENT).build();
+        rabbitTemplate.send(env.getProperty("rabbitmq.user.register.exchange.name"),env.getProperty("rabbitmq.user.register.routing.key.name"),msg);
     }
 
 

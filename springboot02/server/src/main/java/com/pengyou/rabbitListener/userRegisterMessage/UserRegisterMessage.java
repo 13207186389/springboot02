@@ -1,20 +1,24 @@
-package com.pengyou.listener.event;
+package com.pengyou.rabbitListener.userRegisterMessage;
 
 
 import com.pengyou.model.entity.User;
 import org.springframework.context.ApplicationEvent;
 
+import java.io.Serializable;
+
 /**
- * 用于ApplicationEvent模型
+ * 用于rabbitmq模型
  */
-public class UserRegisterEvent extends ApplicationEvent{
+public class UserRegisterMessage implements Serializable {
 
     private User user;
 
     private String url;
 
-    public UserRegisterEvent(Object source, User user, String url) {
-        super(source);
+    public UserRegisterMessage() {
+    }
+
+    public UserRegisterMessage(User user, String url) {
         this.user = user;
         this.url = url;
     }
@@ -33,5 +37,13 @@ public class UserRegisterEvent extends ApplicationEvent{
 
     public void setUrl(String url) {
         this.url = url;
+    }
+
+    @Override
+    public String toString() {
+        return "UserRegisterMessage{" +
+                "user=" + user +
+                ", url='" + url + '\'' +
+                '}';
     }
 }
