@@ -5,7 +5,8 @@ public enum StatusCode {
     Fail(-1,"失败"),
     NotFound(10010,"不存在"),
     Validate_params(10020,"请求参数不合法"),
-    Invalid_Params(10012,"请求参数不合法!");
+    Invalid_Params(10012,"请求参数不合法!"),
+    Validate_UserName_Expire(10013,"未在有效时间内验证注册信息，请重新注册!!");
 
 
     private Integer code;

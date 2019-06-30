@@ -418,6 +418,11 @@ public class UserService {
         //TODO:利用rabbitTemplat发送消息,要传入参数为 交换机名字,routingkey名字,和信息,所以先要构造信息对象,并设置消息队列持久化
         Message msg= MessageBuilder.withBody(objectMapper.writeValueAsBytes(message)).setDeliveryMode(MessageDeliveryMode.PERSISTENT).build();
         rabbitTemplate.send(env.getProperty("rabbitmq.user.register.exchange.name"),env.getProperty("rabbitmq.user.register.routing.key.name"),msg);
+
+        //TODO：加上30min的限制-开发时可以采用3min
+        final Long expire=1L;
+        final String key=user.getUserName() + String.valueOf(timestamp);
+        stringRedisTemplate.opsForValue().set(key,user.getUserName(),expire,TimeUnit.MINUTES);
     }
 
 

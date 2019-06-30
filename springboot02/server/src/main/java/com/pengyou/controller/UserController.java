@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
@@ -35,6 +36,9 @@ public class UserController {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
 
     /**
@@ -165,6 +169,13 @@ public class UserController {
             //验证参数
             String userNameDecrypt=resMap.get("userName");
             String timeStampDecrypt=resMap.get("timestamp");
+
+            //TODO：校验其是否在有效时间内
+             String key=userNameDecrypt + timeStampDecrypt;
+            if (!stringRedisTemplate.hasKey(key)){
+                return new BaseResponse(StatusCode.Validate_UserName_Expire);
+            }
+
             if (userName.equals(userNameDecrypt) && timestamp.equals(timeStampDecrypt)){
                 return new BaseResponse(StatusCode.Success);
             }else{
