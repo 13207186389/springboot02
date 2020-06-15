@@ -16,7 +16,7 @@
         <mybatis-spring-boot.version>1.1.1</mybatis-spring-boot.version>
         <mybatis-pagehelper.version>4.1.2</mybatis-pagehelper.version>
         <lombok.version>1.16.10</lombok.version>
-        <hibernate-validator-version>5.2.4.Final</hibernate-validator-version>
+        <hibernate-validator-version>5.3.5.Final</hibernate-validator-version>
         <jackson.version>2.3.3</jackson.version>
     </properties>
 
